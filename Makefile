@@ -5,7 +5,7 @@ FOR_RELEASE = 1
 THEOS_PACKAGE_SCHEME = rootless
 THEOS_LEAN_AND_MEAN = 1
 THEOS_NO_DEFAULTS = 1
-TARGET = iphone:clang:15.0:15.0
+TARGET = iphone:clang:15.0
 FRAMEWORK_OUTPUT_DIR = res
 
 include $(THEOS)/makefiles/common.mk

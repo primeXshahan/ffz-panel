@@ -57,22 +57,13 @@ jobs:
             brew install dpkg
           fi
 
-      # Step 6: Build the tweak (auto-detect SDK)
+      # Step 6: Build the tweak (auto-detect SDK via Makefile)
       - name: 🏗 Build Tweak (make clean package)
         run: |
           export THEOS="$HOME/theos"
-          IOS_SDK="${{ env.IOS_SDK }}"
-          if [ -z "$IOS_SDK" ]; then
-            echo "No iOS SDK detected, trying to find one..."
-            IOS_SDK=$(ls /Applications/Xcode*.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/ 2>/dev/null | head -1 | sed 's/.*iPhoneOS\(.*\).sdk/\1/')
-          fi
-          if [ -n "$IOS_SDK" ]; then
-            echo "Building with iOS SDK: $IOS_SDK"
-            make clean package FINALPACKAGE=1 TARGET="iphone:clang:15.0:$IOS_SDK"
-          else
-            echo "No iOS SDK found, trying without SDK version..."
-            make clean package FINALPACKAGE=1 TARGET="iphone:clang:15.0:latest"
-          fi
+          IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo "")
+          echo "=== Building for iOS 15.0+ using SDK: $IOS_SDK ==="
+          make clean package FINALPACKAGE=1
 
       # Step 7: List build output
       - name: 📂 List Output Files
