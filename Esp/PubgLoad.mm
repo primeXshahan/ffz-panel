@@ -5,7 +5,8 @@
 #import "JHDragView.h"
 #import "menuUIKIT/drawview.h"
 
-// Small floating button that opens the mod menu
+#pragma mark - Floating Trigger Button
+
 @interface MenuTriggerButton : UIView
 @property (nonatomic, strong) UILabel *label;
 @property (nonatomic, copy) void (^onTap)(void);
@@ -29,26 +30,21 @@
         self.label.textColor = [UIColor whiteColor];
         [self addSubview:self.label];
         
-        // Tap to open
         UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTap)];
         [self addGestureRecognizer:tap];
         
-        // Drag to move
         UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(didPan:)];
         [self addGestureRecognizer:pan];
     }
     return self;
 }
 
-- (void)didTap {
-    if (self.onTap) self.onTap();
-}
+- (void)didTap { if (self.onTap) self.onTap(); }
 
 - (void)didPan:(UIPanGestureRecognizer *)g {
     CGPoint t = [g translationInView:self.superview];
     self.center = CGPointMake(self.center.x + t.x, self.center.y + t.y);
     [g setTranslation:CGPointZero inView:self.superview];
-    
     if (g.state == UIGestureRecognizerStateEnded) {
         [[NSUserDefaults standardUserDefaults] setFloat:self.frame.origin.x forKey:@"FFZ_Menu_X"];
         [[NSUserDefaults standardUserDefaults] setFloat:self.frame.origin.y forKey:@"FFZ_Menu_Y"];
@@ -57,6 +53,8 @@
 
 @end
 
+
+#pragma mark - Main Tweak Entry
 
 @implementation PubgLoad
 
@@ -84,8 +82,7 @@ UIWindow *mainWindow;
             initDone = YES;
             mainWindow = win;
             extraInfo = [PubgLoad new];
-            [extraInfo showTriggerButton];
-            // Also listen for menu close notifications
+            [extraInfo setupAllTriggers];
             [[NSNotificationCenter defaultCenter] addObserver:extraInfo
                                                      selector:@selector(menuDidClose)
                                                          name:@"ModMenuDidClose"
@@ -97,36 +94,57 @@ UIWindow *mainWindow;
     });
 }
 
-#pragma mark - Floating Trigger Button
+#pragma mark - Setup Triggers (Button + Gesture)
+
+- (void)setupAllTriggers {
+    [self showTriggerButton];
+    [self addGestureTriggers];
+}
 
 - (void)showTriggerButton {
     if (triggerBtn) return;
-    
     UIWindow *win = [UIApplication sharedApplication].keyWindow;
     if (!win) return;
     
-    // Load saved position or use default
     CGFloat x = [[NSUserDefaults standardUserDefaults] floatForKey:@"FFZ_Menu_X"];
     CGFloat y = [[NSUserDefaults standardUserDefaults] floatForKey:@"FFZ_Menu_Y"];
-    if (x < 1 && y < 1) {
-        x = 20;
-        y = 120;
-    }
+    if (x < 1 && y < 1) { x = 20; y = 120; }
     
     triggerBtn = [[MenuTriggerButton alloc] initWithFrame:CGRectMake(x, y, 40, 40)];
-    triggerBtn.onTap = ^{
-        [extraInfo openMenu];
-    };
+    triggerBtn.onTap = ^{ [extraInfo openMenu]; };
     [win addSubview:triggerBtn];
+    NSLog(@"[FFZ] ✓ Floating button added");
+}
+
+- (void)addGestureTriggers {
+    UIWindow *win = [UIApplication sharedApplication].keyWindow;
+    UIView *target = win ?: [JHPP currentViewController].view;
     
-    NSLog(@"[FFZ] ✓ Trigger button added");
+    // OPTION 1: 3-Finger Double Tap → Open Menu
+    UITapGestureRecognizer *openTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(openMenu)];
+    openTap.numberOfTapsRequired = 2;
+    openTap.numberOfTouchesRequired = 3;
+    openTap.delaysTouchesEnded = NO;
+    [target addGestureRecognizer:openTap];
+    
+    // OPTION 2: 2-Finger Single Tap → Close Menu
+    UITapGestureRecognizer *closeTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(closeMenu)];
+    closeTap.numberOfTapsRequired = 1;
+    closeTap.numberOfTouchesRequired = 2;
+    closeTap.delaysTouchesEnded = NO;
+    [target addGestureRecognizer:closeTap];
+    
+    NSLog(@"[FFZ] ✓ Gesture triggers added to: %@", [target class]);
+    
+    // Notify user about available triggers
+    NSLog(@"[FFZ] ▶ Open: ⚡ button tap OR 3-finger double tap");
+    NSLog(@"[FFZ] ▶ Close: 2-finger single tap OR menu close button");
 }
 
 #pragma mark - Menu Actions
 
 - (void)openMenu {
     if (isUIKitMenuOpen) return;
-    
     triggerBtn.hidden = YES;
     
     UIWindow *window = [UIApplication sharedApplication].keyWindow;
@@ -138,6 +156,19 @@ UIWindow *mainWindow;
     [rootVC presentViewController:menuVC animated:NO completion:^{
         isUIKitMenuOpen = YES;
     }];
+}
+
+- (void)closeMenu {
+    if (!isUIKitMenuOpen) return;
+    
+    UIWindow *window = [UIApplication sharedApplication].keyWindow;
+    UIViewController *vc = window.rootViewController.presentedViewController;
+    if ([vc isKindOfClass:[ModMenuViewController class]]) {
+        [vc dismissViewControllerAnimated:NO completion:^{
+            isUIKitMenuOpen = NO;
+            triggerBtn.hidden = NO;
+        }];
+    }
 }
 
 - (void)menuDidClose {
