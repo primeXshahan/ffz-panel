@@ -56,46 +56,12 @@ jobs:
             brew install dpkg
           fi
 
-      # Step 6: Detect iOS SDK & Build
-      - name: 🏗 Detect SDK & Build Tweak
+      # Step 6: Build Tweak (Makefile auto-detects SDK)
+      - name: 🏗 Build Tweak
         run: |
           export THEOS="$HOME/theos"
-          
-          # List all available iOS SDKs
-          echo "=== Available iPhoneOS SDKs ==="
-          ls -1 /Applications/Xcode*.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/ 2>/dev/null || \
-          ls -1 $(xcrun --show-sdk-path 2>/dev/null | sed 's|/[^/]*$||') 2>/dev/null || \
-          echo "No SDK directories found"
-          
-          # Get the actual iOS SDK version from the SDK path
-          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null)
-          echo "SDK path: $SDK_PATH"
-          
-          if [ -n "$SDK_PATH" ]; then
-            # Extract version from path like .../iPhoneOS18.2.sdk
-            SDK_VER=$(echo "$SDK_PATH" | sed 's/.*iPhoneOS\(.*\)\.sdk/\1/')
-            echo "Detected iOS SDK version: $SDK_VER"
-          else
-            # Fallback: find the SDK directory manually
-            SDK_DIR=$(ls /Applications/Xcode*.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS*.sdk 2>/dev/null | head -1)
-            if [ -n "$SDK_DIR" ]; then
-              SDK_VER=$(echo "$SDK_DIR" | sed 's/.*iPhoneOS\(.*\)\.sdk/\1/')
-              echo "Detected iOS SDK version (fallback): $SDK_VER"
-            else
-              SDK_VER="latest"
-              echo "Could not detect SDK, using: latest"
-            fi
-          fi
-          
-          # Fail early if no SDK detected
-          if [ -z "$SDK_VER" ] || [ "$SDK_VER" = "latest" ]; then
-            echo "::error::No iOS SDK found on this runner! Cannot build."
-            exit 1
-          fi
-          
-          # Build with detected SDK
-          echo "=== Building with TARGET=iphone:clang:15.0:$SDK_VER ==="
-          make clean package FINALPACKAGE=1 TARGET="iphone:clang:15.0:$SDK_VER"
+          echo "=== Building with auto-detected SDK ==="
+          make clean package FINALPACKAGE=1
 
       # Step 7: List build output
       - name: 📂 List Output Files
