@@ -56,11 +56,18 @@ jobs:
             brew install dpkg
           fi
 
-      # Step 6: Build Tweak (Makefile auto-detects SDK)
+      # Step 6: Build Tweak
       - name: 🏗 Build Tweak
         run: |
           export THEOS="$HOME/theos"
-          echo "=== Building with auto-detected SDK ==="
+          # Detect iOS SDK version and set TARGET
+          SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo "")
+          if [ -n "$SDK_VER" ]; then
+            export TARGET="iphone:clang:15.0:$SDK_VER"
+            echo "=== Detected iOS SDK: $SDK_VER, TARGET=$TARGET ==="
+          else
+            echo "=== No SDK detected, using Makefile default TARGET ==="
+          fi
           make clean package FINALPACKAGE=1
 
       # Step 7: List build output

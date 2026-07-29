@@ -5,17 +5,9 @@ FOR_RELEASE = 1
 THEOS_PACKAGE_SCHEME = rootless
 THEOS_LEAN_AND_MEAN = 1
 THEOS_NO_DEFAULTS = 1
-# Auto-detect iOS SDK version
-# On GitHub Actions (macOS): detects the actual SDK from Xcode
-# On iPhone (no xcrun): falls back to original working value
-XCRUN_AVAIL := $(shell command -v xcrun 2>/dev/null)
-ifneq ($(strip $(XCRUN_AVAIL)),)
-  IOS_SDK_VER = $(shell xcrun --sdk iphoneos --show-sdk-version 2>/dev/null)
-  TARGET = iphone:clang:15.0:$(IOS_SDK_VER)
-else
-  # iPhone build: use SDK bundled with Theos
-  TARGET = iphone:clang:16.5:16.5
-endif
+# TARGET - Can be overridden by environment variable (GitHub Actions sets this)
+# iPhone default: use SDK bundled with Theos
+TARGET ?= iphone:clang:16.5:16.5
 FRAMEWORK_OUTPUT_DIR = res
 
 include $(THEOS)/makefiles/common.mk
