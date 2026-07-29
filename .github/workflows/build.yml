@@ -60,14 +60,22 @@ jobs:
       - name: 🏗 Build Tweak
         run: |
           export THEOS="$HOME/theos"
-          # Detect iOS SDK version and set TARGET
-          SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo "")
-          if [ -n "$SDK_VER" ]; then
-            export TARGET="iphone:clang:15.0:$SDK_VER"
-            echo "=== Detected iOS SDK: $SDK_VER, TARGET=$TARGET ==="
+          
+          # Get the actual iOS SDK path
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || echo "")
+          
+          if [ -n "$SDK_PATH" ]; then
+            echo "=== Real iOS SDK: $SDK_PATH ==="
+            # Create symlink: iPhoneOS15.0.sdk → actual SDK
+            # Theos looks for SDK matching deployment target (15.0)
+            SDK_DIR=$(dirname "$SDK_PATH")
+            ACTUAL_SDK=$(basename "$SDK_PATH")
+            sudo ln -sf "$ACTUAL_SDK" "$SDK_DIR/iPhoneOS15.0.sdk"
+            echo "=== Created symlink: iPhoneOS15.0.sdk → $ACTUAL_SDK ==="
           else
-            echo "=== No SDK detected, using Makefile default TARGET ==="
+            echo "=== No SDK found on runner, using Theos default ==="
           fi
+          
           make clean package FINALPACKAGE=1
 
       # Step 7: List build output

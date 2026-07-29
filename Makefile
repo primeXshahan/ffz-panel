@@ -5,9 +5,10 @@ FOR_RELEASE = 1
 THEOS_PACKAGE_SCHEME = rootless
 THEOS_LEAN_AND_MEAN = 1
 THEOS_NO_DEFAULTS = 1
-# TARGET - Can be overridden by environment variable (GitHub Actions sets this)
-# iPhone default: use SDK bundled with Theos
-TARGET ?= iphone:clang:16.5:16.5
+# TARGET: deployment target only (15.0 for iPhone 7 compatibility)
+# SDK path: set via SYSROOT env var by GitHub Actions workflow
+# On iPhone (no SYSROOT): Theos uses its bundled SDK
+TARGET = iphone:clang:15.0
 FRAMEWORK_OUTPUT_DIR = res
 
 include $(THEOS)/makefiles/common.mk
