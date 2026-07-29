@@ -10,6 +10,7 @@
 #include <unordered_map>
 #import <CommonCrypto/CommonDigest.h>
 #include <sstream>
+#include <iomanip>
 #include <vector>
 // Global variables
 
