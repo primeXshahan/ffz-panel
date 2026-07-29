@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Setup Guide - FFZ Panel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700;800&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Noto Sans Bengali', sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #1a1a3e, #24243e);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  
+  .header {
+    text-align: center;
+    padding: 40px 20px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 20px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(45deg, transparent, rgba(99,102,241,0.1), transparent);
+    pointer-events: none;
+  }
+  
+  .header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+  }
+  
+  .header p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    position: relative;
+  }
+  
+  .progress-bar-container {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 4px;
+    margin: 20px 0;
+    position: relative;
+  }
+  
+  .progress-bar {
+    height: 8px;
+    background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+    border-radius: 6px;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+  
+  .step-count {
+    text-align: center;
+    color: #6366f1;
+    font-weight: 600;
+    margin-top: 8px;
+    font-size: 0.9rem;
+  }
+  
+  .step {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer;
+  }
+  
+  .step:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+    border-color: rgba(99,102,241,0.3);
+  }
+  
+  .step.completed {
+    border-color: rgba(34,197,94,0.4);
+    background: rgba(34,197,94,0.05);
+  }
+  
+  .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-right: 15px;
+    flex-shrink: 0;
+  }
+  
+  .step.completed .step-number {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+  }
+  
+  .step-title {
+    display: flex;
+    align-items: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    gap: 12px;
+  }
+  
+  .step-title .emoji {
+    font-size: 1.5rem;
+  }
+  
+  .step-content {
+    padding-left: 55px;
+  }
+  
+  .step-content p {
+    color: #cbd5e1;
+    line-height: 1.8;
+    margin-bottom: 12px;
+    font-size: 1.05rem;
+  }
+  
+  .step-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+  
+  .step-content ul li {
+    padding: 8px 0 8px 28px;
+    position: relative;
+    color: #cbd5e1;
+    line-height: 1.7;
+    font-size: 1rem;
+  }
+  
+  .step-content ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #6366f1;
+    font-weight: 700;
+  }
+  
+  .cmd-box {
+    background: #1a1a2e;
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin: 10px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: #a5b4fc;
+    position: relative;
+    overflow-x: auto;
+  }
+  
+  .cmd-box .label {
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    background: #6366f1;
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-family: 'Noto Sans Bengali', sans-serif;
+  }
+  
+  .highlight-box {
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+    border-left: 4px solid #6366f1;
+  }
+  
+  .highlight-box.warning {
+    background: rgba(234,179,8,0.1);
+    border-color: rgba(234,179,8,0.3);
+    border-left-color: #eab308;
+  }
+  
+  .highlight-box.success {
+    background: rgba(34,197,94,0.1);
+    border-color: rgba(34,197,94,0.3);
+    border-left-color: #22c55e;
+  }
+  
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: #fff;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(99,102,241,0.4);
+  }
+  
+  .btn-success {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+  }
+  
+  .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(34,197,94,0.4);
+  }
+  
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+  
+  .checkmark {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #22c55e;
+    color: #fff;
+    text-align: center;
+    line-height: 24px;
+    font-size: 14px;
+    margin-left: 10px;
+  }
+  
+  .screenshot-placeholder {
+    background: rgba(0,0,0,0.3);
+    border: 2px dashed rgba(99,102,241,0.3);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 15px 0;
+    text-align: center;
+    color: #64748b;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .screenshot-placeholder .icon {
+    font-size: 2rem;
+  }
+  
+  .screenshot-placeholder .desc {
+    font-size: 0.9rem;
+    color: #94a3b8;
+  }
+  
+  .navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .img-row {
+    display: flex;
+    gap: 15px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+  }
+  
+  .img-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 15px;
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+  }
+  
+  .img-card .img-placeholder {
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));
+    border-radius: 8px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+  }
+  
+  .img-card .img-label {
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+  
+  .final-section {
+    background: rgba(34,197,94,0.05);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  
+  .final-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    color: #22c55e;
+  }
+  
+  .key-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+  }
+  
+  .key-step-card {
+    background: rgba(255,255,255,0.03);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    text-align: center;
+  }
+  
+  .key-step-card .num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #6366f1;
+    margin-bottom: 5px;
+  }
+  
+  .key-step-card p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+  }
+
+  /* Toggle completed state */
+  .step .toggle-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #94a3b8;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    transition: all 0.3s;
+  }
+  
+  .step .toggle-btn:hover {
+    background: rgba(255,255,255,0.1);
+  }
+  
+  .step.completed .toggle-btn {
+    border-color: #22c55e;
+    color: #22c55e;
+  }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.6rem; }
+    .step { padding: 20px; }
+    .step-content { padding-left: 0; margin-top: 10px; }
+    .step-title { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🚀 GitHub দিয়ে Auto-Build Setup</h1>
+    <p>ধাপে ধাপে গাইড — আপনার PC থেকে GitHub এ Push করুন, GitHub Actions Auto-Build করবে!</p>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="step-count" id="stepCount">০ / ৮ টি স্টেপ সম্পন্ন</div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step" data-step="1">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">১</span>
+      <span class="emoji">🔑</span>
+      GitHub Account বানান
+    </div>
+    <div class="step-content">
+      <p>আপনার PC-র browser এ এই লিংকে যান:</p>
+      <div class="cmd-box">
+        <span class="label">🔗 লিংক</span>
+        https://github.com/signup
+      </div>
+      <ul>
+        <li>আপনার <strong>ইমেইল</strong> দিন (Gmail ব্যবহার করুন)</li>
+        <li>একটি <strong>পাসওয়ার্ড</strong> দিন</li>
+        <li>একটি <strong>ইউজারনেম</strong> দিন (যেমন: <code>zexis</code>)</li>
+        <li>Email এ আসা verification code টি দিন</li>
+        <li>কিছু প্রশ্ন করলে skip দিন</li>
+      </ul>
+      <div class="highlight-box success">
+        ✅ হয়ে গেলে <strong>github.com</strong> এ login থাকবেন!
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step" data-step="2">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">২</span>
+      <span class="emoji">📦</span>
+      New Repository বানান
+    </div>
+    <div class="step-content">
+      <p>Login করার পর GitHub এ:</p>
+      <ul>
+        <li>উপরে ডানদিকে <strong>+</strong> আইকনে ক্লিক করুন</li>
+        <li><strong>New repository</strong> সিলেক্ট করুন</li>
+      </ul>
+      <div class="img-row">
+        <div class="img-card">
+          <div class="img-placeholder">➕</div>
+          <div class="img-label">+ → New repository</div>
+        </div>
+      </div>
+      <ul>
+        <li><strong>Repository name:</strong> <code>ffz-panel</code> লিখুন</li>
+        <li><strong>Public</strong> রাখুন (সবুজ বৃত্ত)</li>
+        <li><strong>Create repository</strong> বাটনে ক্লিক করুন</li>
+      </ul>
+      <div class="highlight-box success">
+        ✅ হয়ে গেলে একটি পেজ আসবে যাতে commands লেখা আছে — সেটা বন্ধ করে দিন, দরকার নেই
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step" data-step="3">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">৩</span>
+      <span class="emoji">💻</span>
+      GitHub Desktop Install করুন
+    </div>
+    <div class="step-content">
+      <p>PC-র browser এ এই লিংকে যান:</p>
+      <div class="cmd-box">
+        <span class="label">🔗 লিংক</span>
+        https://desktop.github.com/
+      </div>
+      <ul>
+        <li><strong>Download for Windows</strong> বাটনে ক্লিক করুন</li>
+        <li>Download হয়ে গেলে ফাইলটাতে ডাবল ক্লিক করে Install করুন</li>
+        <li>Install হয়ে গেলে GitHub Desktop খুলবে</li>
+        <li><strong>Sign in to GitHub.com</strong> ক্লিক করে আপনার GitHub account এ login করুন</li>
+        <li>এরপর <strong>Finish</strong> ক্লিক করুন</li>
+      </ul>
+      <div class="highlight-box success">
+        ✅ GitHub Desktop এখন আপনার account-এ connected!
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step" data-step="4">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">৪</span>
+      <span class="emoji">📂</span>
+      Repository Clone করুন
+    </div>
+    <div class="step-content">
+      <p>GitHub Desktop এ:</p>
+      <ul>
+        <li><strong>File</strong> মেনুতে ক্লিক করুন</li>
+        <li><strong>Clone Repository</strong> সিলেক্ট করুন</li>
+      </ul>
+      <div class="img-row">
+        <div class="img-card">
+          <div class="img-placeholder">📋</div>
+          <div class="img-label">File → Clone Repository</div>
+        </div>
+        <div class="img-card">
+          <div class="img-placeholder">🌐</div>
+          <div class="img-label">URL Tab সিলেক্ট</div>
+        </div>
+      </div>
+      <ul>
+        <li><strong>URL</strong> ট্যাবে যান</li>
+        <li>URL লিখুন: <code>https://github.com/আপনার-ইউজারনেম/ffz-panel</code></li>
+        <div class="highlight-box warning">
+          ⚠️ <strong>আপনার-ইউজারনেম</strong> এর জায়গায় আপনার আসল ইউজারনেম দিন!<br>
+          যেমন: <code>https://github.com/zexis/ffz-panel</code>
+        </div>
+        <li><strong>Choose...</strong> ক্লিক করে ফোল্ডার সিলেক্ট করুন (যেমন Documents/GitHub)</li>
+        <li><strong>Clone</strong> বাটনে ক্লিক করুন</li>
+      </ul>
+      <div class="highlight-box success">
+        ✅ একবার Clone হয়ে গেলে ফোল্ডারটি রেডি! এখন ফাইল কপি করবেন।
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step" data-step="5">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">৫</span>
+      <span class="emoji">📋</span>
+      Project Files কপি করুন
+    </div>
+    <div class="step-content">
+      <p>এখন আপনার Project এর ফাইলগুলো GitHub Desktop ফোল্ডারে কপি করতে হবে:</p>
+      
+      <div class="highlight-box">
+        <strong>📌 প্রথমে Clone করা ফোল্ডারটি খুঁজুন:</strong><br>
+        GitHub Desktop এ উপরে লেখা আছে <strong>Current repository: ffz-panel</strong><br>
+        তার নিচে <strong>Local path:</strong> দেখাবে — সেটা নোট করুন।
+      </div>
+
+      <ul>
+        <li><strong>Windows Explorer</strong> খুলুন</li>
+        <li>এই path এ যান: <code>C:\Users\X SHAHAN\Downloads\duckdz</code></li>
+        <li>এখানে <strong>সব ফাইল সিলেক্ট করুন</strong> (Ctrl+A)</li>
+        <li><strong>কপি করুন</strong> (Ctrl+C)</li>
+        <li>এখন GitHub Desktop এর ফোল্ডারে যান (Clone করা জায়গা)</li>
+        <li><strong>Paste করুন</strong> (Ctrl+V)</li>
+      </ul>
+
+      <div class="highlight-box success">
+        ✅ ফাইল কপি হয়ে গেছে! দেখবেন duckdz ফোল্ডারের সব ফাইল এখন GitHub ফোল্ডারে আছে।
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="step" data-step="6">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">৬</span>
+      <span class="emoji">⬆️</span>
+      GitHub এ Push করুন
+    </div>
+    <div class="step-content">
+      <p>GitHub Desktop এ ফিরে যান:</p>
+      <ul>
+        <li>বাঁদিকে সব ফাইল দেখাবে (Changed Files)</li>
+        <li>নিচে বাঁদিকে <strong>Summary</strong> লেখার জায়গায় লিখুন: <code>FFZ Panel with KeyAuth</code></li>
+        <li>নিচে <strong>Description</strong> ফাঁকা রাখতে পারেন</li>
+        <li><strong>Commit to main</strong> বাটনে ক্লিক করুন</li>
+      </ul>
+      <div class="img-row">
+        <div class="img-card">
+          <div class="img-placeholder">📝</div>
+          <div class="img-label">Summary লিখুন</div>
+        </div>
+        <div class="img-card">
+          <div class="img-placeholder">✅</div>
+          <div class="img-label">Commit to main</div>
+        </div>
+      </div>
+      <ul>
+        <li>Commit হয়ে গেলে উপরে <strong>Push origin</strong> বাটন দেখাবে</li>
+        <li>সেটাতে ক্লিক করুন</li>
+      </ul>
+      <div class="highlight-box success">
+        ✅ Push হয়ে গেছে! এখন GitHub Actions auto-build শুরু করবে!
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 7 -->
+  <div class="step" data-step="7">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">৭</span>
+      <span class="emoji">🔄</span>
+      Build দেখা (GitHub Actions)
+    </div>
+    <div class="step-content">
+      <p>PC-র browser এ আপনার GitHub repository খুলুন:</p>
+      <div class="cmd-box">
+        <span class="label">🔗 লিংক</span>
+        https://github.com/আপনার-ইউজারনেম/ffz-panel
+      </div>
+      <ul>
+        <li>উপরে <strong>Actions</strong> ট্যাবে ক্লিক করুন</li>
+        <li>একটি ওয়র্কফ্লো চলছে দেখবেন — <strong>Build FFZ Panel (Theos)</strong></li>
+        <li>⏳ হলুদ চিহ্ন = চলছে (২-৫ মিনিট লাগবে)</li>
+        <li>✅ সবুজ চিহ্ন = build সফল!</li>
+        <li>❌ লাল চিহ্ন = build fail — তখন আমাকে জানান</li>
+      </ul>
+      <div class="img-row">
+        <div class="img-card">
+          <div class="img-placeholder">⏳</div>
+          <div class="img-label">Build চলছে...</div>
+        </div>
+        <div class="img-card">
+          <div class="img-placeholder" style="color:#22c55e;">✅</div>
+          <div class="img-label">Build Successful!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 8 -->
+  <div class="step" data-step="8">
+    <span class="toggle-btn" onclick="toggleStep(this)">✅ Done</span>
+    <div class="step-title">
+      <span class="step-number">৮</span>
+      <span class="emoji">📥</span>
+      .deb File Download + Install
+    </div>
+    <div class="step-content">
+      <p>Build সফল হলে:</p>
+      <ul>
+        <li>✅ সবুজ build-এ ক্লিক করুন</li>
+        <li>নিচে স্ক্রল করলে <strong>Artifacts</strong> দেখবেন</li>
+        <li><strong>ffz-panel-deb</strong> এ ক্লিক করুন → .deb ফাইল download হবে</li>
+      </ul>
+      <div class="img-row">
+        <div class="img-card">
+          <div class="img-placeholder">📦</div>
+          <div class="img-label">Artifacts → ffz-panel-deb</div>
+        </div>
+        <div class="img-card">
+          <div class="img-placeholder">📱</div>
+          <div class="img-label">iPhone এ Install via Filza</div>
+        </div>
+      </div>
+      <p><strong>iPhone এ Install:</strong></p>
+      <ul>
+        <li>Filza WiFi Transfer চালু করুন</li>
+        <li>PC থেকে downloaded .deb ফাইলটি iPhone এ upload করুন</li>
+        <li>Filza তে .deb ফাইল ট্যাপ করুন → <strong>Install</strong></li>
+        <li>তারপর NewTerm এ <code>killall SpringBoard</code> দিন</li>
+        <li>অথবা Phone রিস্টার্ট করুন</li>
+      </ul>
+      <div class="highlight-box success">
+        🎉 <strong>Done!</strong> এখন Free Fire খুলুন → 🔐 Key লিখুন → ✅ Menu Unlock!
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="final-section">
+    <h2>🎉 সব Step শেষ!</h2>
+    <p>এখন GitHub এ push করলেই GitHub Actions auto-build করবে — আর iPhone এ কমান্ড দেওয়ার দরকার নেই!</p>
+    
+    <div class="key-steps">
+      <div class="key-step-card">
+        <div class="num">⬆️</div>
+        <p>PC থেকে GitHub এ Push</p>
+      </div>
+      <div class="key-step-card">
+        <div class="num">🔄</div>
+        <p>GitHub Actions Auto-Build</p>
+      </div>
+      <div class="key-step-card">
+        <div class="num">📥</div>
+        <p>Download .deb File</p>
+      </div>
+      <div class="key-step-card">
+        <div class="num">📱</div>
+        <p>Filza দিয়ে iPhone এ Install</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="navigation">
+    <div>
+      <a href="https://github.com/signup" target="_blank" class="btn btn-primary">🔑 GitHub Account বানান</a>
+      <a href="https://desktop.github.com/" target="_blank" class="btn btn-primary" style="margin-left:10px;">💻 GitHub Desktop Download</a>
+    </div>
+    <div>
+      <button class="btn btn-success" onclick="resetAll()">🔄 Reset All</button>
+    </div>
+  </div>
+
+  <br><br>
+
+</div>
+
+<script>
+  // Progress tracking
+  function updateProgress() {
+    const steps = document.querySelectorAll('.step');
+    const completed = document.querySelectorAll('.step.completed');
+    const total = steps.length;
+    const done = completed.length;
+    const percent = (done / total) * 100;
+    
+    document.getElementById('progressBar').style.width = percent + '%';
+    document.getElementById('stepCount').textContent = done + ' / ' + total + ' টি স্টেপ সম্পন্ন';
+    
+    if (done === total) {
+      document.getElementById('stepCount').style.color = '#22c55e';
+    } else {
+      document.getElementById('stepCount').style.color = '#6366f1';
+    }
+  }
+  
+  function toggleStep(btn) {
+    const step = btn.closest('.step');
+    step.classList.toggle('completed');
+    btn.textContent = step.classList.contains('completed') ? '✅ Done' : '✅ Done';
+    updateProgress();
+  }
+  
+  function resetAll() {
+    document.querySelectorAll('.step.completed').forEach(s => s.classList.remove('completed'));
+    updateProgress();
+  }
+  
+  // Auto scroll to first incomplete step
+  document.addEventListener('DOMContentLoaded', function() {
+    updateProgress();
+  });
+</script>
+
+</body>
+</html>

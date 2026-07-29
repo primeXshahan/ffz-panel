@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FFZ KeyAuth Admin</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; background: #0a0a16; color: #e0e0e0; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #0d0d20, #1a1a35); padding: 20px; text-align: center; border-bottom: 1px solid #2a2a4a; }
+.header h1 { color: #00ff88; font-size: 24px; }
+.header p { color: #666; font-size: 13px; margin-top: 4px; }
+.container { max-width: 900px; margin: 0 auto; padding: 16px; }
+.card { background: #12122a; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #2a2a4a; }
+.card h2 { color: #00ff88; font-size: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.form-group { margin-bottom: 14px; }
+label { display: block; color: #888; font-size: 13px; margin-bottom: 4px; }
+input, select, textarea { width: 100%; padding: 10px 14px; background: #0a0a1a; border: 1px solid #2a2a4a; border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+input:focus, select:focus, textarea:focus { border-color: #00ff88; }
+textarea { resize: vertical; min-height: 60px; font-family: monospace; }
+.btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s; font-weight: 600; }
+.btn-primary { background: #00ff88; color: #000; }
+.btn-primary:hover { background: #00cc6a; transform: translateY(-1px); }
+.btn-danger { background: #ff3344; color: #fff; }
+.btn-danger:hover { background: #cc2233; }
+.btn-secondary { background: #2a2a4a; color: #fff; }
+.btn-secondary:hover { background: #3a3a5a; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+.table-wrap { overflow-x: auto; margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 8px; background: #0a0a1a; color: #00ff88; font-weight: 500; border-bottom: 1px solid #2a2a4a; white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid #1a1a35; }
+tr:hover td { background: #1a1a3511; }
+.status-active { color: #00ff88; }
+.status-used { color: #ffaa00; }
+.status-revoked { color: #ff3344; }
+.status-expired { color: #ff6644; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.badge-active { background: #00ff8822; color: #00ff88; }
+.badge-used { background: #ffaa0022; color: #ffaa00; }
+.badge-revoked { background: #ff334422; color: #ff3344; }
+.badge-expired { background: #ff664422; color: #ff6644; }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 16px; background: #0a0a1a; border-radius: 10px; padding: 4px; }
+.tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; border-radius: 8px; font-size: 13px; font-weight: 500; transition: all 0.2s; color: #666; }
+.tab.active { background: #00ff88; color: #000; }
+.tab:hover:not(.active) { background: #1a1a35; color: #aaa; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 10px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.toast.success { background: #00ff88; color: #000; }
+.toast.error { background: #ff3344; color: #fff; }
+.toast.info { background: #3388ff; color: #fff; }
+.hidden { display: none !important; }
+.copy-btn { background: none; border: 1px solid #2a2a4a; color: #aaa; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 6px; }
+.copy-btn:hover { border-color: #00ff88; color: #00ff88; }
+.loading { text-align: center; padding: 40px; color: #666; }
+.loading::after { content: '...'; animation: dots 1.5s steps(4, end) infinite; }
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>🔐 FFZ KeyAuth Admin</h1>
+    <p>Manage your license keys from anywhere</p>
+</div>
+<div class="container" id="app">
+    <!-- Settings -->
+    <div class="card">
+        <div class="form-group">
+            <label>API Server URL</label>
+            <div class="row">
+                <input type="url" id="apiUrl" placeholder="https://your-server.com/api/index.php">
+                <input type="password" id="adminKey" placeholder="Admin Secret Key">
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="testConnection()">🔌 Test Connection</button>
+        <span id="connStatus" style="margin-left:10px;font-size:13px;"></span>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="tab-bar">
+        <div class="tab active" onclick="switchTab('generate',this)">🔑 Generate</div>
+        <div class="tab" onclick="switchTab('keys',this)">📋 Keys</div>
+        <div class="tab" onclick="switchTab('email',this)">📧 Email</div>
+        <div class="tab" onclick="switchTab('logs',this)">📊 Logs</div>
+    </div>
+    
+    <!-- Generate Tab -->
+    <div id="tab-generate" class="card">
+        <h2>🔑 Generate New Key</h2>
+        <div class="form-group">
+            <label>Device UDID *</label>
+            <input type="text" id="genUdid" placeholder="E621E1F8-C36C-495A-93FC-0C247A3E6E5F">
+        </div>
+        <div class="row">
+            <div class="form-group">
+                <label>Expiry Date (optional)</label>
+                <input type="date" id="genExpiry">
+            </div>
+            <div class="form-group">
+                <label>User Email (optional)</label>
+                <input type="email" id="genEmail" placeholder="user@example.com">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Notes (optional)</label>
+            <input type="text" id="genNotes" placeholder="Customer name or info">
+        </div>
+        <button class="btn btn-primary" onclick="generateKey()">🚀 Generate Key</button>
+        <div id="genResult" style="margin-top:12px;"></div>
+    </div>
+    
+    <!-- Keys Tab -->
+    <div id="tab-keys" class="card hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h2 style="margin:0;">📋 All Keys</h2>
+            <button class="btn btn-secondary" onclick="refreshKeys()">🔄 Refresh</button>
+        </div>
+        <div class="form-group">
+            <input type="text" id="keySearch" placeholder="🔍 Search by key, UDID, or email..." oninput="filterKeys()">
+        </div>
+        <div class="table-wrap" id="keysTableWrap">
+            <div class="loading" id="keysLoading">Loading</div>
+        </div>
+    </div>
+    
+    <!-- Email Tab -->
+    <div id="tab-email" class="card hidden">
+        <h2>📧 Send Key via Email</h2>
+        <div class="form-group">
+            <label>License Key *</label>
+            <input type="text" id="emailKey" placeholder="XXXXXXXX-XXXXXXXX or XXXX-XXXX-XXXX-XXXX">
+        </div>
+        <div class="form-group">
+            <label>Recipient Email *</label>
+            <input type="email" id="emailTo" placeholder="user@example.com">
+        </div>
+        <button class="btn btn-primary" onclick="sendEmail()">📤 Send Email</button>
+        <div id="emailResult" style="margin-top:12px;"></div>
+    </div>
+    
+    <!-- Logs Tab -->
+    <div id="tab-logs" class="card hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h2 style="margin:0;">📊 Activity Logs</h2>
+            <button class="btn btn-secondary" onclick="refreshLogs()">🔄 Refresh</button>
+        </div>
+        <div class="table-wrap" id="logsTableWrap">
+            <div class="loading" id="logsLoading">Loading</div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = document.getElementById('apiUrl');
+const KEY = document.getElementById('adminKey');
+
+// Load saved settings
+document.addEventListener('DOMContentLoaded', () => {
+    BASE.value = localStorage.getItem('ffz_api_url') || '';
+    KEY.value = localStorage.getItem('ffz_admin_key') || '';
+});
+
+function saveSettings() {
+    localStorage.setItem('ffz_api_url', BASE.value);
+    localStorage.setItem('ffz_admin_key', KEY.value);
+}
+
+function apiUrl() { saveSettings(); return BASE.value.replace(/\/+$/, ''); }
+function adminKey() { return KEY.value; }
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function apiCall(action, extra) {
+    const url = apiUrl() + '?' + new URLSearchParams({action, admin_key: adminKey(), ...extra});
+    const res = await fetch(url);
+    return await res.json();
+}
+
+async function testConnection() {
+    const s = document.getElementById('connStatus');
+    if (!apiUrl()) { s.textContent = '⚠ Enter API URL'; return; }
+    s.textContent = '⏳ Testing...';
+    try {
+        const d = await apiCall('ping');
+        if (d.success) { s.innerHTML = '✅ <span style="color:#00ff88">Connected! v' + (d.version||'?') + '</span>'; }
+        else { s.innerHTML = '❌ <span style="color:#ff3344">' + (d.error||'Failed') + '</span>'; }
+    } catch(e) { s.innerHTML = '❌ <span style="color:#ff3344">' + e.message + '</span>'; }
+}
+
+async function generateKey() {
+    const udid = document.getElementById('genUdid').value.trim();
+    if (!udid) { showToast('⚠ Enter Device UDID', 'error'); return; }
+    const r = document.getElementById('genResult');
+    r.innerHTML = '<div class="loading">Generating</div>';
+    try {
+        const d = await apiCall('generate', {
+            udid, expiry: document.getElementById('genExpiry').value,
+            email: document.getElementById('genEmail').value.trim(),
+            notes: document.getElementById('genNotes').value.trim()
+        });
+        if (d.success) {
+            r.innerHTML = '<div style="background:#00ff8810;border:1px solid #00ff8844;border-radius:8px;padding:15px;">'
+                + '<div style="color:#00ff88;font-weight:600;margin-bottom:8px;">✅ Key Generated!</div>'
+                + '<div style="background:#0a0a1a;padding:12px;border-radius:6px;font-family:monospace;font-size:18px;text-align:center;letter-spacing:2px;color:#00ff88;user-select:all;" onclick="copyText(this)">' + d.key + '</div>'
+                + '<div style="margin-top:8px;font-size:12px;color:#666;">UDID: ' + d.device_udid + '</div>'
+                + (d.expires_at ? '<div style="font-size:12px;color:#666;">Expires: ' + d.expires_at + '</div>' : '')
+                + '</div>';
+            refreshKeys();
+        } else {
+            r.innerHTML = '<div style="color:#ff3344;padding:10px;background:#ff334411;border-radius:8px;">❌ ' + (d.error||'Failed') + '</div>';
+        }
+    } catch(e) { r.innerHTML = '<div style="color:#ff3344;">❌ ' + e.message + '</div>'; }
+}
+
+async function refreshKeys() {
+    document.getElementById('keysLoading').style.display = 'block';
+    document.getElementById('keysLoading').textContent = 'Loading';
+    try {
+        const d = await apiCall('list', {});
+        if (d.success) renderKeys(d.keys);
+        else document.getElementById('keysTableWrap').innerHTML = '<div style="color:#ff3344;padding:20px;">❌ ' + (d.error||'Failed') + '</div>';
+    } catch(e) {
+        document.getElementById('keysTableWrap').innerHTML = '<div style="color:#ff3344;padding:20px;">❌ ' + e.message + '</div>';
+    }
+}
+
+function renderKeys(keys) {
+    const wrap = document.getElementById('keysTableWrap');
+    if (!keys || keys.length === 0) {
+        wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">No keys yet. Generate your first key!</div>';
+        return;
+    }
+    let html = '<table><thead><tr><th>Key</th><th>UDID</th><th>Status</th><th>Expires</th><th>Email</th><th>Created</th><th>Actions</th></tr></thead><tbody>';
+    keys.forEach(k => {
+        const fmtKey = k.license_key ? (k.license_key.substring(0,4)+'-'+k.license_key.substring(4,8)+'-'+k.license_key.substring(8,12)+'-'+k.license_key.substring(12,16)) : 'N/A';
+        const statusClass = 'badge-' + k.status;
+        html += '<tr>'
+            + '<td style="font-family:monospace;font-size:12px;user-select:all;">' + fmtKey + '</td>'
+            + '<td style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;">' + (k.device_udid||'-') + '</td>'
+            + '<td><span class="badge ' + statusClass + '">' + k.status + '</span></td>'
+            + '<td style="font-size:12px;">' + (k.expires_at||'never') + '</td>'
+            + '<td style="font-size:12px;">' + (k.email||'-') + '</td>'
+            + '<td style="font-size:12px;">' + (k.created_at||'') + '</td>'
+            + '<td>' + (k.status !== 'revoked' ? '<button class="copy-btn" onclick="revokeKey(\'' + k.license_key + '\')">⛔ Revoke</button>' : '') + '</td>'
+            + '</tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+}
+
+window.filterKeys = function() {
+    const q = document.getElementById('keySearch').value.toLowerCase();
+    const rows = document.querySelectorAll('#keysTableWrap table tbody tr');
+    rows.forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+};
+
+async function revokeKey(key) {
+    if (!confirm('Revoke this key?')) return;
+    try {
+        const d = await apiCall('revoke', {key});
+        if (d.success) { showToast('✅ Key revoked', 'success'); refreshKeys(); }
+        else showToast('❌ ' + (d.error||'Failed'), 'error');
+    } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+async function sendEmail() {
+    const key = document.getElementById('emailKey').value.trim();
+    const email = document.getElementById('emailTo').value.trim();
+    if (!key || !email) { showToast('⚠ Enter key and email', 'error'); return; }
+    const r = document.getElementById('emailResult');
+    r.innerHTML = '<div class="loading">Sending</div>';
+    try {
+        const d = await apiCall('send_email', {key, email});
+        if (d.success) {
+            r.innerHTML = '<div style="color:#00ff88;">✅ Email sent successfully!</div>';
+            showToast('✅ Email sent!', 'success');
+        } else {
+            r.innerHTML = '<div style="color:#ff3344;">❌ ' + (d.error||'Failed') + '</div>';
+            showToast('❌ Email failed', 'error');
+        }
+    } catch(e) { r.innerHTML = '<div style="color:#ff3344;">❌ ' + e.message + '</div>'; }
+}
+
+async function refreshLogs() {
+    document.getElementById('logsLoading').style.display = 'block';
+    document.getElementById('logsLoading').textContent = 'Loading';
+    try {
+        const d = await apiCall('logs', {});
+        if (d.success) renderLogs(d.logs);
+        else document.getElementById('logsTableWrap').innerHTML = '<div style="color:#ff3344;">❌ ' + (d.error||'Failed') + '</div>';
+    } catch(e) {
+        document.getElementById('logsTableWrap').innerHTML = '<div style="color:#ff3344;">❌ ' + e.message + '</div>';
+    }
+}
+
+function renderLogs(logs) {
+    const wrap = document.getElementById('logsTableWrap');
+    if (!logs || logs.length === 0) {
+        wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">No logs yet.</div>';
+        return;
+    }
+    let html = '<table><thead><tr><th>Time</th><th>Action</th><th>Key</th><th>Device</th><th>IP</th></tr></thead><tbody>';
+    logs.forEach(l => {
+        html += '<tr>'
+            + '<td style="font-size:12px;">' + (l.created_at||'') + '</td>'
+            + '<td>' + l.action + '</td>'
+            + '<td style="font-family:monospace;font-size:12px;">' + (l.license_key||'').substring(0,8) + '...' + '</td>'
+            + '<td style="font-size:12px;">' + (l.device_udid||'-').substring(0,8) + '...' + '</td>'
+            + '<td style="font-size:12px;">' + (l.ip_address||'-') + '</td>'
+            + '</tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+}
+
+function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    ['generate','keys','email','logs'].forEach(t => {
+        document.getElementById('tab-'+t).classList.toggle('hidden', t !== name);
+    });
+    if (name === 'keys') refreshKeys();
+    if (name === 'logs') refreshLogs();
+}
+
+function copyText(el) {
+    // Works on HTTPS, localhost, and HTTP (with fallback)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(el.textContent).then(() => {
+            showToast('📋 Copied!', 'info');
+        }).catch(() => {
+            fallbackCopy(el.textContent);
+        });
+    } else {
+        fallbackCopy(el.textContent);
+    }
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('📋 Copied!', 'info'); }
+    catch(e) { showToast('❌ Could not copy', 'error'); }
+    document.body.removeChild(ta);
+}
+</script>
+</body>
+</html>
