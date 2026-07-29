@@ -6,6 +6,14 @@
 #import "JHDragView.h"
 #import "menuUIKIT/drawview.h"
 
+#pragma mark - File-scope statics (accessible by all classes in this file)
+
+static PubgLoad *extraInfo;
+static BOOL isUIKitMenuOpen = NO;
+static BOOL initDone = NO;
+static MenuTriggerButton *triggerBtn = nil;
+static UIWindow *overlayWindow = nil;
+
 #pragma mark - Floating Trigger Button (⚡)
 
 @interface MenuTriggerButton : UIView
@@ -80,12 +88,6 @@
 #pragma mark - Main Tweak Entry
 
 @implementation PubgLoad
-
-static PubgLoad *extraInfo;
-static BOOL isUIKitMenuOpen = NO;
-static BOOL initDone = NO;
-static MenuTriggerButton *triggerBtn = nil;
-static UIWindow *overlayWindow = nil;
 
 #pragma mark - Initialization
 
