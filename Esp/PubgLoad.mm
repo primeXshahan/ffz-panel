@@ -5,18 +5,72 @@
 #import "JHDragView.h"
 #import "menuUIKIT/drawview.h"
 
+// Small floating button that opens the mod menu
+@interface MenuTriggerButton : UIView
+@property (nonatomic, strong) UILabel *label;
+@property (nonatomic, copy) void (^onTap)(void);
+@end
+
+@implementation MenuTriggerButton
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor = [UIColor colorWithRed:0.2 green:0.2 blue:0.2 alpha:0.7];
+        self.layer.cornerRadius = frame.size.width / 2;
+        self.layer.borderWidth = 1.5;
+        self.layer.borderColor = [UIColor colorWithRed:1.0 green:0.5 blue:0 alpha:0.8].CGColor;
+        self.userInteractionEnabled = YES;
+        
+        self.label = [[UILabel alloc] initWithFrame:self.bounds];
+        self.label.text = @"⚡";
+        self.label.font = [UIFont systemFontOfSize:20];
+        self.label.textAlignment = NSTextAlignmentCenter;
+        self.label.textColor = [UIColor whiteColor];
+        [self addSubview:self.label];
+        
+        // Tap to open
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTap)];
+        [self addGestureRecognizer:tap];
+        
+        // Drag to move
+        UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(didPan:)];
+        [self addGestureRecognizer:pan];
+    }
+    return self;
+}
+
+- (void)didTap {
+    if (self.onTap) self.onTap();
+}
+
+- (void)didPan:(UIPanGestureRecognizer *)g {
+    CGPoint t = [g translationInView:self.superview];
+    self.center = CGPointMake(self.center.x + t.x, self.center.y + t.y);
+    [g setTranslation:CGPointZero inView:self.superview];
+    
+    if (g.state == UIGestureRecognizerStateEnded) {
+        [[NSUserDefaults standardUserDefaults] setFloat:self.frame.origin.x forKey:@"FFZ_Menu_X"];
+        [[NSUserDefaults standardUserDefaults] setFloat:self.frame.origin.y forKey:@"FFZ_Menu_Y"];
+    }
+}
+
+@end
+
+
 @implementation PubgLoad
 
 static PubgLoad *extraInfo;
 static BOOL isUIKitMenuOpen = NO;
 static BOOL initDone = NO;
+static MenuTriggerButton *triggerBtn = nil;
 UIWindow *mainWindow;
 
-#pragma mark - Initialization (retries up to 8s until window is ready)
+#pragma mark - Initialization
 
 + (void)load {
     [super load];
-    [self tryInitWithDelay:1 remaining:8];
+    [self tryInitWithDelay:1 remaining:10];
 }
 
 + (void)tryInitWithDelay:(int)delay remaining:(int)remaining {
@@ -30,47 +84,50 @@ UIWindow *mainWindow;
             initDone = YES;
             mainWindow = win;
             extraInfo = [PubgLoad new];
-            [extraInfo initGestures];
-            NSLog(@"[FFZ] ✓ Menu initialized at %ds", delay);
+            [extraInfo showTriggerButton];
+            // Also listen for menu close notifications
+            [[NSNotificationCenter defaultCenter] addObserver:extraInfo
+                                                     selector:@selector(menuDidClose)
+                                                         name:@"ModMenuDidClose"
+                                                       object:nil];
+            NSLog(@"[FFZ] ✓ Initialized at %ds", delay);
         } else if (!initDone) {
             [PubgLoad tryInitWithDelay:1 remaining:remaining - 1];
         }
     });
 }
 
-#pragma mark - Gesture Setup (attached to keyWindow for reliability)
+#pragma mark - Floating Trigger Button
 
-- (void)initGestures {
+- (void)showTriggerButton {
+    if (triggerBtn) return;
+    
     UIWindow *win = [UIApplication sharedApplication].keyWindow;
-    UIView *target = win ?: [JHPP currentViewController].view;
+    if (!win) return;
     
-    // 3-Finger Double Tap → Open Menu
-    UITapGestureRecognizer *openTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(openMenu)];
-    openTap.numberOfTapsRequired = 2;
-    openTap.numberOfTouchesRequired = 3;
-    openTap.delaysTouchesEnded = NO;
-    [target addGestureRecognizer:openTap];
+    // Load saved position or use default
+    CGFloat x = [[NSUserDefaults standardUserDefaults] floatForKey:@"FFZ_Menu_X"];
+    CGFloat y = [[NSUserDefaults standardUserDefaults] floatForKey:@"FFZ_Menu_Y"];
+    if (x < 1 && y < 1) {
+        x = 20;
+        y = 120;
+    }
     
-    // 2-Finger Single Tap → Close Menu
-    UITapGestureRecognizer *closeTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(closeMenu)];
-    closeTap.numberOfTapsRequired = 1;
-    closeTap.numberOfTouchesRequired = 2;
-    closeTap.delaysTouchesEnded = NO;
-    [target addGestureRecognizer:closeTap];
+    triggerBtn = [[MenuTriggerButton alloc] initWithFrame:CGRectMake(x, y, 40, 40)];
+    triggerBtn.onTap = ^{
+        [extraInfo openMenu];
+    };
+    [win addSubview:triggerBtn];
     
-    // Listen for menu-close notifications from the menu itself
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(menuDidClose)
-                                                 name:@"ModMenuDidClose"
-                                               object:nil];
-    
-    NSLog(@"[FFZ] ✓ Gestures added to: %@", [target class]);
+    NSLog(@"[FFZ] ✓ Trigger button added");
 }
 
 #pragma mark - Menu Actions
 
 - (void)openMenu {
     if (isUIKitMenuOpen) return;
+    
+    triggerBtn.hidden = YES;
     
     UIWindow *window = [UIApplication sharedApplication].keyWindow;
     UIViewController *rootVC = window.rootViewController;
@@ -85,20 +142,7 @@ UIWindow *mainWindow;
 
 - (void)menuDidClose {
     isUIKitMenuOpen = NO;
-}
-
-- (void)closeMenu {
-    if (!isUIKitMenuOpen) return;
-    
-    UIWindow *window = [UIApplication sharedApplication].keyWindow;
-    UIViewController *vc = window.rootViewController.presentedViewController;
-    if ([vc isKindOfClass:[ModMenuViewController class]]) {
-        [vc dismissViewControllerAnimated:NO completion:^{
-            isUIKitMenuOpen = NO;
-        }];
-    } else {
-        isUIKitMenuOpen = NO;
-    }
+    triggerBtn.hidden = NO;
 }
 
 @end
