@@ -6,7 +6,8 @@
 	<dict>
 		<key>Bundles</key>
 		<array>
-			<string>com.garena.game.kgvn</string>
+			<string>com.dts.freefireth</string>
+			<string>com.dts.freefiremax</string>
 		</array>
 	</dict>
 </dict>
