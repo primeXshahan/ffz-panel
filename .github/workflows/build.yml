@@ -18,21 +18,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Step 2: Setup Xcode and detect latest iOS SDK
-      - name: 🛠 Setup Xcode & Detect iOS SDK
+      # Step 2: Select Xcode (ensure iOS SDK is available)
+      - name: 🛠 Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer 2>/dev/null || \
-          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer 2>/dev/null || \
-          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer 2>/dev/null || \
-          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer 2>/dev/null || \
-          sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer 2>/dev/null || \
-          sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer 2>/dev/null || \
-          echo "Using default Xcode"
-          xcodebuild -version
-          # Find latest iOS SDK version
-          IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo "")
-          echo "Available iOS SDK: $IOS_SDK"
-          echo "IOS_SDK=$IOS_SDK" >> $GITHUB_ENV
+          # Try latest Xcode first, fall back to older versions
+          for VER in 16.2 16.1 16.0 15.4 15.3 15.2; do
+            XCODE_PATH="/Applications/Xcode_$VER.app/Contents/Developer"
+            if [ -d "$XCODE_PATH" ]; then
+              sudo xcode-select -s "$XCODE_PATH"
+              echo "Selected Xcode $VER"
+              xcode-select -p
+              break
+            fi
+          done
+          xcodebuild -version 2>/dev/null || echo "Warning: xcodebuild not found"
 
       # Step 3: Install Theos
       - name: 🔧 Install Theos (iOS Tweak Build System)
@@ -42,7 +41,7 @@ jobs:
           sudo chown -R $(whoami) "$THEOS"
           git clone --recursive https://github.com/theos/theos.git "$THEOS"
 
-      # Step 4: Install ldid (code signing tool)
+      # Step 4: Install ldid
       - name: 🔑 Install ldid
         run: |
           if ! command -v ldid &>/dev/null; then
@@ -50,33 +49,67 @@ jobs:
           fi
           which ldid
 
-      # Step 5: Install dpkg (for .deb packaging)
+      # Step 5: Install dpkg
       - name: 📦 Install dpkg
         run: |
           if ! command -v dpkg-deb &>/dev/null; then
             brew install dpkg
           fi
 
-      # Step 6: Build the tweak (auto-detect SDK via Makefile)
-      - name: 🏗 Build Tweak (make clean package)
+      # Step 6: Detect iOS SDK & Build
+      - name: 🏗 Detect SDK & Build Tweak
         run: |
           export THEOS="$HOME/theos"
-          IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo "")
-          echo "=== Building for iOS 15.0+ using SDK: $IOS_SDK ==="
-          make clean package FINALPACKAGE=1
+          
+          # List all available iOS SDKs
+          echo "=== Available iPhoneOS SDKs ==="
+          ls -1 /Applications/Xcode*.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/ 2>/dev/null || \
+          ls -1 $(xcrun --show-sdk-path 2>/dev/null | sed 's|/[^/]*$||') 2>/dev/null || \
+          echo "No SDK directories found"
+          
+          # Get the actual iOS SDK version from the SDK path
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null)
+          echo "SDK path: $SDK_PATH"
+          
+          if [ -n "$SDK_PATH" ]; then
+            # Extract version from path like .../iPhoneOS18.2.sdk
+            SDK_VER=$(echo "$SDK_PATH" | sed 's/.*iPhoneOS\(.*\)\.sdk/\1/')
+            echo "Detected iOS SDK version: $SDK_VER"
+          else
+            # Fallback: find the SDK directory manually
+            SDK_DIR=$(ls /Applications/Xcode*.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS*.sdk 2>/dev/null | head -1)
+            if [ -n "$SDK_DIR" ]; then
+              SDK_VER=$(echo "$SDK_DIR" | sed 's/.*iPhoneOS\(.*\)\.sdk/\1/')
+              echo "Detected iOS SDK version (fallback): $SDK_VER"
+            else
+              SDK_VER="latest"
+              echo "Could not detect SDK, using: latest"
+            fi
+          fi
+          
+          # Fail early if no SDK detected
+          if [ -z "$SDK_VER" ] || [ "$SDK_VER" = "latest" ]; then
+            echo "::error::No iOS SDK found on this runner! Cannot build."
+            exit 1
+          fi
+          
+          # Build with detected SDK
+          echo "=== Building with TARGET=iphone:clang:15.0:$SDK_VER ==="
+          make clean package FINALPACKAGE=1 TARGET="iphone:clang:15.0:$SDK_VER"
 
       # Step 7: List build output
       - name: 📂 List Output Files
         run: |
-          echo "=== .theos output ==="
-          find .theos -type f -name "*.deb" -o -name "*.dylib" 2>/dev/null | head -20
           echo "=== packages output ==="
           find packages -type f -name "*.deb" 2>/dev/null | head -10
           echo ""
           echo "=== All .deb files ==="
           find . -name "*.deb" 2>/dev/null
+          echo ""
+          echo "=== .dylib files ==="
+          find . -name "*.dylib" 2>/dev/null | head -10
 
-      # Step 8: Upload .deb package as artifact
+      # Step 8: Upload .deb package
       - name: 📤 Upload .deb Package
         uses: actions/upload-artifact@v4
         with:
@@ -86,7 +119,7 @@ jobs:
             *.deb
           if-no-files-found: warn
 
-      # Step 9: Upload .dylib as artifact (for sideloading)
+      # Step 9: Upload .dylib
       - name: 📤 Upload .dylib
         uses: actions/upload-artifact@v4
         with:
@@ -96,7 +129,7 @@ jobs:
             .theos/obj/arm64/ffz.dylib
           if-no-files-found: warn
 
-      # Step 10: Upload the .plist (needed for sideloading)
+      # Step 10: Upload plist
       - name: 📤 Upload plist
         uses: actions/upload-artifact@v4
         with:
