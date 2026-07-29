@@ -8,6 +8,8 @@
 
 #pragma mark - File-scope statics (accessible by all classes in this file)
 
+@class MenuTriggerButton;  // Forward declaration
+
 static PubgLoad *extraInfo;
 static BOOL isUIKitMenuOpen = NO;
 static BOOL initDone = NO;
